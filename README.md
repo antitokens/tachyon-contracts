@@ -51,7 +51,7 @@ import "./Power.sol";
  * @dev Modified Bancor formula for Solidity 0.8.x with built-in overflow checks.
  */
 contract BancorFormula is Power {
-    string public version = "0.3";
+    string public version = "0.1";
     uint32 private constant MAX_WEIGHT = 1000000;
     uint256 private constant FEE_PERCENTAGE = 100; // 1% = 1/10000 = 100ppm
 
@@ -162,7 +162,6 @@ import "./BancorFormula.sol";
 contract BondingCurve is ERC20, BancorFormula, Ownable {
     uint256 public poolBalance;
     uint32 public reserveRatio;
-    uint256 public baseFeeLimit; // Maximum base fee for transactions
 
     event LogMint(uint256 amountMinted, uint256 totalCost);
     event LogWithdraw(uint256 amountWithdrawn, uint256 reward);
@@ -188,7 +187,7 @@ contract BondingCurve is ERC20, BancorFormula, Ownable {
     /**
      * @dev Buy tokens by sending Ether
      */
-    function buy() public payable validBaseFee returns (bool) {
+    function buy() public payable returns (bool) {
         require(msg.value > 0, "SEND_ETHER");
 
         uint256 tokensToMint = calculatePurchaseReturn(
@@ -213,7 +212,7 @@ contract BondingCurve is ERC20, BancorFormula, Ownable {
      * @dev Sell tokens for Ether
      * @param sellAmount Amount of tokens to sell
      */
-    function sell(uint256 sellAmount) public validBaseFee returns (bool) {
+    function sell(uint256 sellAmount) public returns (bool) {
         require(sellAmount > 0 && balanceOf(msg.sender) >= sellAmount, "INVALID_AMOUNT");
 
         uint256 ethAmount = calculateSaleReturn(
@@ -236,22 +235,6 @@ contract BondingCurve is ERC20, BancorFormula, Ownable {
 
         emit LogWithdraw(sellAmount, ethAmount);
         return true;
-    }
-
-    /**
-     * @dev Modifier to ensure the base fee is within the acceptable limit
-     */
-    modifier validBaseFee() {
-        require(block.basefee <= baseFeeLimit, "FEE_EXCEEDS_LIMIT");
-        _;
-    }
-
-    /**
-     * @dev Update the base fee limit (onlyOwner)
-     * @param _baseFeeLimit New base fee limit
-     */
-    function setBaseFeeLimit(uint256 _baseFeeLimit) external onlyOwner {
-        baseFeeLimit = _baseFeeLimit;
     }
 
 }
