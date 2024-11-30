@@ -19,13 +19,9 @@
 
 This specification uses DIA Protocol and ERC-20 at core, besides EIP-155.
 
-### 1. Price Oracle (EIP-3688)
+### 1. Price Oracle (DIA Protocol)
 
-This specification uses EIP-3688 to input the `δ` between `$ANTI` and `$PRO` prices (`= abs($ANTI - $PRO)`) to the mint function.
-
-```solidity
-function resolve(bytes calldata name, bytes calldata data) external view returns(bytes memory result)
-```
+This specification uses DIA Protocol to input the `δ` between `$ANTI` and `$PRO` prices (`= abs($ANTI - $PRO)`) to the mint function.
 
 ### 2. Tokenomics
 
