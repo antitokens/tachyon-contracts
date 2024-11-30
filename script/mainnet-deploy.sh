@@ -1,0 +1,1 @@
+forge fmt && source .env && forge script ./script/Deploy.s.sol --rpc-url $MAINNET_RPC_URL  --private-key $MAINNET_PRIVATE_KEY --broadcast --verify --etherscan-api-key $ETHERSCAN_KEY -vvvv

@@ -1,0 +1,23 @@
+{
+  "name": "ccip2eth",
+  "version": "1.0.0",
+  "description": "CCIP2.ETH Resolver",
+  "main": "index.js",
+  "repository": "https://github.com/namesys-eth/ccip2-eth-resolver",
+  "author": "0xc0de4c0ffee <43116881+0xc0de4c0ffee@users.noreply.github.com>",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "local": "anvil --fork-url https://mainnet.infura.io/v3/84842078b09946638c03157f83405213",
+    "localDeploy": "forge fmt && source .env && forge script ./script/Deploy.s.sol --rpc-url http://127.0.0.1:8545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --broadcast -vvvv",
+    "test": "forge fmt && source .env && forge test --fork-url $GOERLI_RPC_URL -vvv --fork-block-number 8897000 --gas-report",
+    "dev": "forge fmt && source .env && forge test --fork-url $GOERLI_RPC_URL -vvv --fork-block-number 8897000 --gas-report --watch",
+    "jstest": "nodemon ./scratch/test.js"
+  },
+  "dependencies": {
+    "viem": "^1.4.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
