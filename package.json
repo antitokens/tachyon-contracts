@@ -1,10 +1,10 @@
 {
-  "name": "ccip2eth",
-  "version": "1.0.0",
-  "description": "CCIP2.ETH Resolver",
-  "main": "index.js",
-  "repository": "https://github.com/namesys-eth/ccip2-eth-resolver",
-  "author": "0xc0de4c0ffee <43116881+0xc0de4c0ffee@users.noreply.github.com>",
+  "name": "tachyon",
+  "version": "0.0.1",
+  "description": "Tachyon by Antitoken",
+  "main": "",
+  "repository": "https://github.com/antitokens/tachyon-contracts",
+  "author": "antitokens <dev@antitoken.pro>",
   "license": "MIT",
   "type": "module",
   "scripts": {
