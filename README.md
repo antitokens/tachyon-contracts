@@ -17,7 +17,7 @@
 
 ## Specification
 
-This specification requires EIP-3668 and ERC-20 at core, besides EIP-155.
+This specification uses DIA Protocol and ERC-20 at core, besides EIP-155.
 
 ### 1. Price Oracle (EIP-3688)
 
