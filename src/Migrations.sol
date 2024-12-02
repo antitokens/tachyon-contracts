@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 contract Migrations {
     address public owner;
-    uint public last_completed_migration;
+    uint256 public last_completed_migration;
 
     // Modifier to restrict access to the owner
     modifier restricted() {
@@ -17,7 +17,7 @@ contract Migrations {
     }
 
     // Set the last completed migration step
-    function setCompleted(uint completed) public restricted {
+    function setCompleted(uint256 completed) public restricted {
         last_completed_migration = completed;
     }
 

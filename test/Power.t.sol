@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
 import "../src/Power.sol";
@@ -8,10 +8,17 @@ import "./helpers/PowerFormulaConstants.sol";
 contract PowerTest is Test {
     Power formula;
 
-    uint256 constant ILLEGAL_VALUE = 2**256;
-    uint256 constant MAX_NUMERATOR = 2**(256 - PowerFormulaConstants.MAX_PRECISION) - 1;
+    uint256 constant ILLEGAL_VALUE = 2 ** 256;
+    uint256 constant MAX_NUMERATOR =
+        2 ** (256 - PowerFormulaConstants.MAX_PRECISION) - 1;
     uint256 constant MIN_DENOMINATOR = 1;
     uint256 constant MAX_EXPONENT = 1_000_000;
+
+    struct TestCase {
+        uint256 numerator;
+        uint256 denominator;
+        bool assertion;
+    }
 
     function setUp() public {
         formula = new Power();
@@ -38,17 +45,11 @@ contract PowerTest is Test {
     function testLn(uint256 caseIndex) public {
         vm.assume(caseIndex < 3);
 
-        struct TestCase {
-            uint256 numerator;
-            uint256 denominator;
-            bool assertion;
-        }
+        TestCase[3] memory cases;
 
-        TestCase[3] memory cases = [
-            TestCase(MAX_NUMERATOR, MAX_NUMERATOR - 1, true),
-            TestCase(MAX_NUMERATOR, MIN_DENOMINATOR, true),
-            TestCase(MAX_NUMERATOR + 1, MIN_DENOMINATOR, false)
-        ];
+        cases[0] = TestCase(MAX_NUMERATOR, MAX_NUMERATOR - 1, true);
+        cases[1] = TestCase(MAX_NUMERATOR, MIN_DENOMINATOR, true);
+        cases[2] = TestCase(MAX_NUMERATOR + 1, MIN_DENOMINATOR, false);
 
         uint256 numerator = cases[caseIndex].numerator;
         uint256 denominator = cases[caseIndex].denominator;
@@ -56,7 +57,10 @@ contract PowerTest is Test {
 
         if (assertion) {
             uint256 result = formula.lnTest(numerator, denominator);
-            assertTrue(result * MAX_EXPONENT < ILLEGAL_VALUE, "Output too large");
+            assertTrue(
+                result * MAX_EXPONENT < ILLEGAL_VALUE,
+                "Output too large"
+            );
         } else {
             vm.expectRevert();
             formula.lnTest(numerator, denominator);
@@ -64,7 +68,10 @@ contract PowerTest is Test {
     }
 
     function testFixedExp(uint256 precision) public {
-        vm.assume(precision >= PowerFormulaConstants.MIN_PRECISION && precision <= PowerFormulaConstants.MAX_PRECISION);
+        vm.assume(
+            precision >= PowerFormulaConstants.MIN_PRECISION &&
+                precision <= PowerFormulaConstants.MAX_PRECISION
+        );
 
         uint256 maxExp = PowerFormulaConstants.maxExpArray(precision);
         uint256 maxVal = PowerFormulaConstants.maxValArray(precision);
@@ -76,7 +83,7 @@ contract PowerTest is Test {
     function testFloorLog2(uint256 n) public {
         vm.assume(n >= 1 && n <= 255);
 
-        uint256 input = 2**n;
+        uint256 input = 2 ** n;
         uint256 expected = n;
 
         uint256 result = formula.floorLog2Test(input);

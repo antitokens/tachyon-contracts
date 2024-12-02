@@ -3,14 +3,12 @@ pragma solidity >0.8.0 <0.9.0;
 
 import "forge-std/Script.sol";
 import "src/BondingCurve.sol";
-import "src/GatewayManager.sol";
 
 contract BondingCurveDeploy is Script {
     /// @dev : Deploy
     function run() external {
         vm.startBroadcast();
-        GatewayManager manager = new GatewayManager();
-        new BondingCurve(address(manager));
+        new BondingCurve("BondingCurveMock", "BCM", msg.sender);
         vm.stopBroadcast();
     }
 }

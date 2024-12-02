@@ -18,24 +18,24 @@ contract Power {
     uint8 private constant MAX_PRECISION = 127;
 
     /**
-    The values below depend on MAX_PRECISION. If you choose to change it:
-    Apply the same change in file 'PrintIntScalingFactors.py', run it and paste the results below.
-    */
+     * The values below depend on MAX_PRECISION. If you choose to change it:
+     * Apply the same change in file 'PrintIntScalingFactors.py', run it and paste the results below.
+     */
     uint256 private constant FIXED_1 = 0x080000000000000000000000000000000;
     uint256 private constant FIXED_2 = 0x100000000000000000000000000000000;
     uint256 private constant MAX_NUM = 0x1ffffffffffffffffffffffffffffffff;
 
     /**
-    The values below depend on MAX_PRECISION. If you choose to change it:
-    Apply the same change in file 'PrintLn2ScalingFactors.py', run it and paste the results below.
-    */
+     * The values below depend on MAX_PRECISION. If you choose to change it:
+     * Apply the same change in file 'PrintLn2ScalingFactors.py', run it and paste the results below.
+     */
     uint256 private constant LN2_MANTISSA = 0x2c5c85fdf473de6af278ece600fcbda;
     uint8 private constant LN2_EXPONENT = 122;
 
     /**
-    The values below depend on MIN_PRECISION and MAX_PRECISION. If you choose to change either one of them:
-    Apply the same change in file 'PrintFunctionBancorFormula.py', run it and paste the results below.
-    */
+     * The values below depend on MIN_PRECISION and MAX_PRECISION. If you choose to change either one of them:
+     * Apply the same change in file 'PrintFunctionBancorFormula.py', run it and paste the results below.
+     */
     uint256[128] private maxExpArray;
 
     // Constructor updated for Solidity 0.8.x
@@ -146,18 +146,10 @@ contract Power {
      * @param _expD Denominator of the exponent
      * @return result of the power calculation and the precision used
      */
-    function power(
-        uint256 _baseN,
-        uint256 _baseD,
-        uint32 _expN,
-        uint32 _expD
-    ) internal view returns (uint256, uint8) {
+    function power(uint256 _baseN, uint256 _baseD, uint32 _expN, uint32 _expD) internal view returns (uint256, uint8) {
         uint256 lnBaseTimesExp = (ln(_baseN, _baseD) * _expN) / _expD;
         uint8 precision = findPositionInMaxExpArray(lnBaseTimesExp);
-        return (
-            fixedExp(lnBaseTimesExp >> (MAX_PRECISION - precision), precision),
-            precision
-        );
+        return (fixedExp(lnBaseTimesExp >> (MAX_PRECISION - precision), precision), precision);
     }
 
     /**
@@ -166,10 +158,7 @@ contract Power {
      * @param _denominator Input denominator
      * @return Logarithmic result
      */
-    function ln(
-        uint256 _numerator,
-        uint256 _denominator
-    ) internal pure returns (uint256) {
+    function ln(uint256 _numerator, uint256 _denominator) internal pure returns (uint256) {
         require(_numerator <= MAX_NUM, "NUMERATOR_TOO_BIG");
 
         uint256 res = 0;
@@ -248,10 +237,7 @@ contract Power {
      * @param _precision Precision of calculation
      * @return Exponential result
      */
-    function fixedExp(
-        uint256 _x,
-        uint8 _precision
-    ) internal pure returns (uint256) {
+    function fixedExp(uint256 _x, uint8 _precision) internal pure returns (uint256) {
         uint256 xi = _x;
         uint256 res = 0;
 
@@ -323,7 +309,6 @@ contract Power {
         xi = (xi * _x) >> _precision;
         res += xi * 0x00000000000000000000000000000001; // add x^33 * (33! / 33!)
 
-        return
-            res / 0x688589cc0e9505e2f2fee5580000000 + _x + (ONE << _precision); // divide by 33! and then add x^1 / 1! + x^0 / 0!
+        return res / 0x688589cc0e9505e2f2fee5580000000 + _x + (ONE << _precision); // divide by 33! and then add x^1 / 1! + x^0 / 0!
     }
 }

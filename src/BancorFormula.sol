@@ -35,10 +35,7 @@ contract BancorFormula is Power {
         uint256 _depositAmount
     ) public view returns (uint256) {
         require(
-            _supply > 0 && 
-            _connectorBalance > 0 && 
-            _connectorWeight > 0 && 
-            _connectorWeight <= MAX_WEIGHT,
+            _supply > 0 && _connectorBalance > 0 && _connectorWeight > 0 && _connectorWeight <= MAX_WEIGHT,
             "INVALID_INPUT"
         );
 
@@ -70,11 +67,8 @@ contract BancorFormula is Power {
         uint256 _sellAmount
     ) public view returns (uint256) {
         require(
-            _supply > 0 &&
-            _connectorBalance > 0 &&
-            _connectorWeight > 0 &&
-            _connectorWeight <= MAX_WEIGHT &&
-            _sellAmount <= _supply,
+            _supply > 0 && _connectorBalance > 0 && _connectorWeight > 0 && _connectorWeight <= MAX_WEIGHT
+                && _sellAmount <= _supply,
             "INVALID_INPUT"
         );
 

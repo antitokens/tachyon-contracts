@@ -1,9 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "../@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "./BancorFormula.sol";
 
 /**
@@ -12,7 +10,7 @@ import "./BancorFormula.sol";
  * https://github.com/bancorprotocol/contracts
  * https://github.com/ConsenSys/curationmarkets/blob/master/CurationMarkets.sol
  */
-contract BondingCurve is ERC20, BancorFormula, Ownable, ReentrancyGuard {
+contract BondingCurve is ERC20, BancorFormula {
     /**
      * @dev Available balance of reserve token in contract
      */
@@ -23,6 +21,12 @@ contract BondingCurve is ERC20, BancorFormula, Ownable, ReentrancyGuard {
      */
     uint32 public reserveRatio;
 
+    constructor(
+        string memory _name,
+        string memory _symbol,
+        address _devAccount
+    ) ERC20(_name, _symbol) BancorFormula(_devAccount) {}
+
     // Receive function for receiving Ether and routing it to buy tokens
     receive() external payable {
         buy();
@@ -31,7 +35,7 @@ contract BondingCurve is ERC20, BancorFormula, Ownable, ReentrancyGuard {
     /**
      * @dev Buy tokens
      */
-    function buy() public payable nonReentrant returns (bool) {
+    function buy() public payable returns (bool) {
         require(msg.value > 0, "VALUE <= 0");
 
         uint256 tokensToMint = calculatePurchaseReturn(
@@ -52,7 +56,7 @@ contract BondingCurve is ERC20, BancorFormula, Ownable, ReentrancyGuard {
      * @dev Sell tokens
      * @param sellAmount Amount of tokens to withdraw
      */
-    function sell(uint256 sellAmount) public nonReentrant returns (bool) {
+    function sell(uint256 sellAmount) public returns (bool) {
         require(
             sellAmount > 0 && balanceOf(msg.sender) >= sellAmount,
             "LOW_BALANCE_OR_BAD_INPUT"
