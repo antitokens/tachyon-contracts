@@ -2,15 +2,14 @@
 pragma solidity ^0.8.20;
 
 import "forge-std/Test.sol";
-import "../src/Power.sol";
+import "./helpers/PowerMock.sol";
 import "./helpers/PowerFormulaConstants.sol";
 
 contract PowerTest is Test {
     Power formula;
 
     uint256 constant ILLEGAL_VALUE = 2 ** 256;
-    uint256 constant MAX_NUMERATOR =
-        2 ** (256 - PowerFormulaConstants.MAX_PRECISION) - 1;
+    uint256 constant MAX_NUMERATOR = 2 ** (256 - PowerFormulaConstants.MAX_PRECISION) - 1;
     uint256 constant MIN_DENOMINATOR = 1;
     uint256 constant MAX_EXPONENT = 1_000_000;
 
@@ -57,10 +56,7 @@ contract PowerTest is Test {
 
         if (assertion) {
             uint256 result = formula.lnTest(numerator, denominator);
-            assertTrue(
-                result * MAX_EXPONENT < ILLEGAL_VALUE,
-                "Output too large"
-            );
+            assertTrue(result * MAX_EXPONENT < ILLEGAL_VALUE, "Output too large");
         } else {
             vm.expectRevert();
             formula.lnTest(numerator, denominator);
@@ -68,10 +64,7 @@ contract PowerTest is Test {
     }
 
     function testFixedExp(uint256 precision) public {
-        vm.assume(
-            precision >= PowerFormulaConstants.MIN_PRECISION &&
-                precision <= PowerFormulaConstants.MAX_PRECISION
-        );
+        vm.assume(precision >= PowerFormulaConstants.MIN_PRECISION && precision <= PowerFormulaConstants.MAX_PRECISION);
 
         uint256 maxExp = PowerFormulaConstants.maxExpArray(precision);
         uint256 maxVal = PowerFormulaConstants.maxValArray(precision);

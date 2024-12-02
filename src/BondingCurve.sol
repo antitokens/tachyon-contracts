@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "../@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "./ERC20.sol";
 import "./BancorFormula.sol";
 
 /**
@@ -21,11 +21,9 @@ contract BondingCurve is ERC20, BancorFormula {
      */
     uint32 public reserveRatio;
 
-    constructor(
-        string memory _name,
-        string memory _symbol,
-        address _devAccount
-    ) ERC20(_name, _symbol) BancorFormula(_devAccount) {}
+    constructor(string memory _name, string memory _symbol, address _devAccount)
+        BancorFormula(_devAccount)
+    {}
 
     // Receive function for receiving Ether and routing it to buy tokens
     receive() external payable {
@@ -38,12 +36,7 @@ contract BondingCurve is ERC20, BancorFormula {
     function buy() public payable returns (bool) {
         require(msg.value > 0, "VALUE <= 0");
 
-        uint256 tokensToMint = calculatePurchaseReturn(
-            totalSupply(),
-            poolBalance,
-            reserveRatio,
-            msg.value
-        );
+        uint256 tokensToMint = calculatePurchaseReturn(totalSupply(), poolBalance, reserveRatio, msg.value);
 
         _mint(msg.sender, tokensToMint); // Using ERC20's _mint function
         poolBalance += msg.value;
@@ -57,19 +50,11 @@ contract BondingCurve is ERC20, BancorFormula {
      * @param sellAmount Amount of tokens to withdraw
      */
     function sell(uint256 sellAmount) public returns (bool) {
-        require(
-            sellAmount > 0 && balanceOf(msg.sender) >= sellAmount,
-            "LOW_BALANCE_OR_BAD_INPUT"
-        );
+        require(sellAmount > 0 && balanceOf(msg.sender) >= sellAmount, "LOW_BALANCE_OR_BAD_INPUT");
 
-        uint256 ethAmount = calculateSaleReturn(
-            totalSupply(),
-            poolBalance,
-            reserveRatio,
-            sellAmount
-        );
+        uint256 ethAmount = calculateSaleReturn(totalSupply(), poolBalance, reserveRatio, sellAmount);
 
-        (bool success, ) = msg.sender.call{value: ethAmount}(""); // Using call instead of transfer for sending Ether
+        (bool success,) = msg.sender.call{value: ethAmount}(""); // Using call instead of transfer for sending Ether
         require(success, "FAIL");
 
         poolBalance -= ethAmount;
