@@ -64,12 +64,17 @@ contract PowerTest is Test {
     }
 
     function testFixedExp(uint256 precision) public {
+        // Ensure precision is within the allowed range
         vm.assume(precision >= PowerFormulaConstants.MIN_PRECISION && precision <= PowerFormulaConstants.MAX_PRECISION);
 
-        uint256 maxExp = PowerFormulaConstants.maxExpArray(precision);
-        uint256 maxVal = PowerFormulaConstants.maxValArray(precision);
+        // Access the maxExp and maxVal from the arrays and convert from bytes1 to uint256
+        uint256 maxExp = uint256(uint8(PowerFormulaConstants.MAX_EXP_ARRAY[precision]));
+        uint256 maxVal = uint256(uint8(PowerFormulaConstants.MAX_VAL_ARRAY[precision]));
 
-        uint256 result = formula.fixedExpTest(maxExp, precision);
+        // Test the fixedExp function with the retrieved maxExp and precision
+        uint256 result = formula.fixedExpTest(maxExp, uint8(precision));
+
+        // Assert that the result matches the expected maxVal
         assertEq(result, maxVal, "Output mismatch");
     }
 

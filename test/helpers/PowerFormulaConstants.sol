@@ -4,8 +4,9 @@ pragma solidity ^0.8.20;
 library PowerFormulaConstants {
     uint8 constant MIN_PRECISION = 32;
     uint8 constant MAX_PRECISION = 127;
-    
-    bytes32[128] constant MAX_EXP_ARRAY = [
+
+    bytes public constant MAX_EXP_ARRAY = abi.encodePacked(
+        [
             0xd7,
             0x19f,
             0x31b,
@@ -134,9 +135,11 @@ library PowerFormulaConstants {
             0x244c49c648baa98192dce88b42f53caf,
             0x459c079aac334623648e24d17c74b3dc,
             0x857ddf0117efa215952912839f6473e6
-        ];
+        ]
+    );
 
-        bytes32[128] constant MAX_VAL_ARRAY = [
+    bytes public constant MAX_VAL_ARRAY = abi.encodePacked(
+        [
             0x2550a7d99147ce113d27f304d24a422c3d,
             0x1745f7d567fdd8c93da354496cf4dddf34,
             0xb5301cf4bf20167721bcdbe218a66f1e0,
@@ -265,6 +268,6 @@ library PowerFormulaConstants {
             0x637d37d6cb204d7419ac094d7e89f0dd,
             0xbde80a98943810876a7852209de22be2,
             0x16b3160a3c604c6667ff40ff1882b0fcf
-        ];
+        ]
+    );
 }
-
