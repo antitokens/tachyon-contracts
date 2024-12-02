@@ -7,16 +7,15 @@ import "../test/helpers/BondingCurveMock.sol";
 contract BondingCurveTest is Test {
     BondingCurveMock instance;
     uint256 constant decimals = 18;
-    uint256 constant startSupply = 10 * 1e18; // 10 tokens
     uint256 constant startPoolBalance = 1 * 1e14; // 0.0001 ETH
-    uint32 constant reserveRatio = uint32((1e6 * 1) / 3); // 1/3 in ppm
+    uint32 constant reserveRatio = uint32(333333); // 1/3 in ppm
     address deployer = address(0x1);
 
     function setUp() public {
         vm.deal(deployer, 10 ether);
         vm.startPrank(deployer);
 
-        instance = new BondingCurveMock{value: startPoolBalance}(startSupply, reserveRatio);
+        instance = new BondingCurveMock{value: startPoolBalance}();
 
         vm.stopPrank();
     }

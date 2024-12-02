@@ -8,7 +8,7 @@ contract BondingCurveMock is BondingCurve {
     uint256 public totalSupply_;
     mapping(address => uint256) public balances;
 
-    constructor() BondingCurve("BondingCurveMock", "BCM", msg.sender) {
+    constructor() payable BondingCurve("BondingCurveMock", "BCM", msg.sender) {
         reserveRatio = RESERVE_RATIO;
         totalSupply_ = 1_000_000;
         balances[msg.sender] = totalSupply_;

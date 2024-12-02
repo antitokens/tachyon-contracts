@@ -8,7 +8,7 @@ import "./helpers/PowerFormulaConstants.sol";
 contract PowerTest is Test {
     Power formula;
 
-    uint256 constant ILLEGAL_VALUE = 2 ** 256;
+    uint256 constant ILLEGAL_VALUE = 2 ** 256 - 1;
     uint256 constant MAX_NUMERATOR = 2 ** (256 - PowerFormulaConstants.MAX_PRECISION) - 1;
     uint256 constant MIN_DENOMINATOR = 1;
     uint256 constant MAX_EXPONENT = 1_000_000;

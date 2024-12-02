@@ -21,9 +21,7 @@ contract BondingCurve is ERC20, BancorFormula {
      */
     uint32 public reserveRatio;
 
-    constructor(string memory _name, string memory _symbol, address _devAccount)
-        BancorFormula(_devAccount)
-    {}
+    constructor(string memory _name, string memory _symbol, address _devAccount) BancorFormula(_devAccount) {}
 
     // Receive function for receiving Ether and routing it to buy tokens
     receive() external payable {
