@@ -6,12 +6,12 @@ import "./helpers/PowerMock.sol";
 import "./helpers/PowerFormulaConstants.sol";
 
 contract PowerTest is Test {
-    Power formula;
+    PowerMock formula;
 
     uint256 constant ILLEGAL_VALUE = 2 ** 256 - 1;
     uint256 constant MAX_NUMERATOR = 2 ** (256 - PowerFormulaConstants.MAX_PRECISION) - 1;
-    uint256 constant MIN_DENOMINATOR = 1;
-    uint256 constant MAX_EXPONENT = 1_000_000;
+    uint32 constant MIN_DENOMINATOR = 1;
+    uint32 constant MAX_EXPONENT = 1_000_000;
 
     struct TestCase {
         uint256 numerator;
@@ -20,7 +20,7 @@ contract PowerTest is Test {
     }
 
     function setUp() public {
-        formula = new Power();
+        formula = new PowerMock();
     }
 
     function testPower(uint256 percent) public {
@@ -28,8 +28,8 @@ contract PowerTest is Test {
 
         uint256 baseN = MAX_NUMERATOR;
         uint256 baseD = MAX_NUMERATOR - 1;
-        uint256 expN = (MAX_EXPONENT * percent) / 100;
-        uint256 expD = MAX_EXPONENT;
+        uint32 expN = uint32(MAX_EXPONENT * percent) / 100;
+        uint32 expD = MAX_EXPONENT;
 
         bool expectedPass = percent <= 100;
 
