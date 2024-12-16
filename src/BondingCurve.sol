@@ -1,68 +1,170 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "./ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/Pausable.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
 import "./BancorFormula.sol";
 
-/**
- * @title Tachyon Bonding Curve on Base
- * @dev Bonding curve contract based on Bancor formula inspired by Bancor Protocol and simondlr
- * https://github.com/bancorprotocol/contracts
- * https://github.com/ConsenSys/curationmarkets/blob/master/CurationMarkets.sol
- */
-contract BondingCurve is ERC20, BancorFormula {
-    /**
-     * @dev Available balance of reserve token in contract
-     */
+contract BondingCurve is ERC20, BancorFormula, ReentrancyGuard, Pausable, Ownable {
+    using Address for address payable;
+
     uint256 public poolBalance;
+    uint32 public immutable reserveRatio;
 
-    /**
-     * @dev Reserve ratio, represented in ppm, 1-1000000
-     */
-    uint32 public reserveRatio;
+    uint256 public constant MAX_SUPPLY = 1_000_000_000 * 10 ** 18;
+    uint256 public constant MIN_PURCHASE = 0.01 ether;
 
-    constructor(string memory _name, string memory _symbol, address _devAccount) BancorFormula(_devAccount) {}
+    error InvalidReserveRatio();
+    error InsufficientValue();
+    error MaxSupplyExceeded();
+    error SlippageProtectionFailed();
+    error InvalidSellAmount();
+    error InsufficientBalance();
+    error EtherTransferFailed();
 
-    // Receive function for receiving Ether and routing it to buy tokens
-    receive() external payable {
-        buy();
+    event LogMint(address indexed buyer, uint256 amountMinted, uint256 cost, uint256 newSupply, uint256 newPoolBalance);
+    event LogWithdraw(
+        address indexed seller, uint256 amountWithdrawn, uint256 reward, uint256 newSupply, uint256 newPoolBalance
+    );
+
+    event FeeCollected(address indexed devAccount, uint256 amount);
+
+    constructor(string memory _name, string memory _symbol, uint32 _reserveRatio, address _devAccount)
+        ERC20(_name, _symbol)
+        BancorFormula(_devAccount)
+        Ownable(msg.sender) // Initialize Ownable with deployer as owner
+    {
+        if (_reserveRatio == 0 || _reserveRatio > 1000000) {
+            revert InvalidReserveRatio();
+        }
+        reserveRatio = _reserveRatio;
     }
 
     /**
-     * @dev Buy tokens
+     * @dev Calculate current token price in ETH
+     * @return price Current token price in ETH
      */
-    function buy() public payable returns (bool) {
-        require(msg.value > 0, "VALUE <= 0");
+    function getCurrentPrice() public view returns (uint256 price) {
+        if (totalSupply() == 0 || poolBalance == 0) {
+            return 1 ether; // Initial price of 1 ETH
+        }
+        return (poolBalance * 1 ether) / totalSupply();
+    }
 
-        uint256 tokensToMint = calculatePurchaseReturn(totalSupply(), poolBalance, reserveRatio, msg.value);
+    /**
+     * @dev Receive function automatically buys tokens
+     * @notice Minimum purchase amount applies
+     */
+    receive() external payable {
+        buy(0); // Default minTokens is 0
+    }
 
-        _mint(msg.sender, tokensToMint); // Using ERC20's _mint function
-        poolBalance += msg.value;
+    /**
+     * @dev Buy tokens by sending Ether
+     * @param minTokens Minimum tokens to receive (slippage protection)
+     * @return success Whether the purchase was successful
+     */
+    function buy(uint256 minTokens) public payable nonReentrant whenNotPaused returns (bool) {
+        if (msg.value < MIN_PURCHASE) {
+            revert InsufficientValue();
+        }
 
-        emit LogMint(tokensToMint, msg.value);
+        // Apply fee to the deposit amount
+        uint256 depositAmount = applyFee(msg.value);
+        uint256 feeAmount = msg.value - depositAmount;
+
+        uint256 tokensToMint = calculatePurchaseReturn(totalSupply(), poolBalance, reserveRatio, depositAmount);
+
+        if (tokensToMint < minTokens) {
+            revert SlippageProtectionFailed();
+        }
+
+        if (totalSupply() + tokensToMint > MAX_SUPPLY) {
+            revert MaxSupplyExceeded();
+        }
+
+        // Transfer fee to dev account
+        if (feeAmount > 0) {
+            (bool feeSuccess,) = devAccount.call{value: feeAmount}("");
+            if (feeSuccess) {
+                emit FeeCollected(devAccount, feeAmount);
+            }
+            // Continue even if fee transfer fails
+        }
+
+        poolBalance += depositAmount;
+        _mint(msg.sender, tokensToMint);
+
+        emit LogMint(msg.sender, tokensToMint, msg.value, totalSupply(), poolBalance);
+
         return true;
     }
 
     /**
-     * @dev Sell tokens
-     * @param sellAmount Amount of tokens to withdraw
+     * @dev Sell tokens for Ether
+     * @param sellAmount Amount of tokens to sell
+     * @param minEth Minimum Ether to receive (slippage protection)
+     * @return success Whether the sale was successful
      */
-    function sell(uint256 sellAmount) public returns (bool) {
-        require(sellAmount > 0 && balanceOf(msg.sender) >= sellAmount, "LOW_BALANCE_OR_BAD_INPUT");
+    function sell(uint256 sellAmount, uint256 minEth) public nonReentrant whenNotPaused returns (bool) {
+        if (sellAmount == 0) {
+            revert InvalidSellAmount();
+        }
+        if (balanceOf(msg.sender) < sellAmount) {
+            revert InsufficientBalance();
+        }
 
         uint256 ethAmount = calculateSaleReturn(totalSupply(), poolBalance, reserveRatio, sellAmount);
 
-        (bool success,) = msg.sender.call{value: ethAmount}(""); // Using call instead of transfer for sending Ether
-        require(success, "FAIL");
+        // Apply fee to the withdrawn amount
+        uint256 withdrawAmount = applyFee(ethAmount);
+        uint256 feeAmount = ethAmount - withdrawAmount;
 
+        if (withdrawAmount < minEth) {
+            revert SlippageProtectionFailed();
+        }
+
+        // Update state before transfer
+        _burn(msg.sender, sellAmount);
         poolBalance -= ethAmount;
-        _burn(msg.sender, sellAmount); // Using ERC20's _burn function
 
-        emit LogWithdraw(sellAmount, ethAmount);
+        // Transfer fee to dev account if applicable
+        if (feeAmount > 0) {
+            (bool feeSuccess,) = devAccount.call{value: feeAmount}("");
+            if (feeSuccess) {
+                emit FeeCollected(devAccount, feeAmount);
+            }
+            // Continue even if fee transfer fails
+        }
+
+        // Transfer ETH to seller
+        (bool success,) = msg.sender.call{value: withdrawAmount}("");
+        if (!success) {
+            // Revert state if transfer fails
+            _mint(msg.sender, sellAmount);
+            poolBalance += ethAmount;
+            revert EtherTransferFailed();
+        }
+
+        emit LogWithdraw(msg.sender, sellAmount, withdrawAmount, totalSupply(), poolBalance);
+
         return true;
     }
 
-    event LogMint(uint256 amountMinted, uint256 totalCost);
-    event LogWithdraw(uint256 amountWithdrawn, uint256 reward);
-    event LogBondingCurve(string logString, uint256 value);
+    /**
+     * @dev Emergency stop for pausing the contract
+     */
+    function pause() external onlyOwner {
+        _pause();
+    }
+
+    /**
+     * @dev Resume the contract after pausing
+     */
+    function unpause() external onlyOwner {
+        _unpause();
+    }
 }

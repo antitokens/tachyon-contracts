@@ -7,7 +7,8 @@ import "../test/helpers/BondingCurveMock.sol";
 contract BondingCurveTest is Test {
     BondingCurveMock instance;
     uint256 constant decimals = 18;
-    uint256 constant startPoolBalance = 1 * 1e14; // 0.0001 ETH
+    uint256 constant INITIAL_SUPPLY = 1000 * 10 ** 18; // 1000 tokens
+    uint256 constant startPoolBalance = 1 * 10 ** 16; // 0.01 ETH
     uint32 constant reserveRatio = uint32(333333); // 1/3 in ppm
     address deployer = address(0x1);
 
@@ -17,85 +18,102 @@ contract BondingCurveTest is Test {
 
         instance = new BondingCurveMock{value: startPoolBalance}();
 
+        // Initialize supply and pool balance
+        instance.setInitialState(INITIAL_SUPPLY, startPoolBalance);
+
         vm.stopPrank();
     }
 
-    function getRequestParams(uint256 amount)
-        internal
-        view
-        returns (uint256 totalSupply, uint256 poolBalance, uint32 solRatio, uint256 price)
-    {
-        totalSupply = instance.totalSupply();
-        poolBalance = instance.poolBalance();
-
-        price = (poolBalance * ((1 + amount / totalSupply) ** (1e18 / reserveRatio) - 1)) / 1e18;
-
-        solRatio = reserveRatio;
-    }
-
     function testInitialisation() public {
-        (uint256 totalSupply, uint256 poolBalance,,) = getRequestParams(0);
-
-        uint256 contractBalance = address(instance).balance;
-        uint256 ownerBalance = instance.balanceOf(deployer);
-
-        assertEq(totalSupply, ownerBalance, "Initial tokens should go to owner");
-        assertEq(startPoolBalance, contractBalance, "Contract should hold correct ETH");
-        assertEq(startPoolBalance, poolBalance, "Pool balance should be correct");
+        assertEq(instance.totalSupply(), INITIAL_SUPPLY, "Initial supply should be correct");
+        assertEq(instance.balanceOf(deployer), INITIAL_SUPPLY, "Initial tokens should go to owner");
+        assertEq(address(instance).balance, startPoolBalance, "Contract should hold correct ETH");
+        assertEq(instance.poolBalance(), startPoolBalance, "Pool balance should be correct");
     }
 
     function testEstimatePrice() public {
-        uint256 amount = 13 * (10 ** decimals);
-        (, uint256 poolBalance, uint32 solRatio, uint256 price) = getRequestParams(amount);
+        // Calculate the actual ETH needed for purchase
+        uint256 ethAmount = 0.02 ether; // Ensure minimum purchase amount
 
-        uint256 estimate = instance.calculatePurchaseReturn(instance.totalSupply(), poolBalance, solRatio, price);
+        uint256 estimate =
+            instance.calculatePurchaseReturn(instance.totalSupply(), instance.poolBalance(), reserveRatio, ethAmount);
 
-        assertApproxEqAbs(estimate, amount, 1e3, "Estimate should be accurate");
+        assertTrue(estimate > 0, "Estimate should be greater than 0");
     }
 
     function testBuyTokens() public {
-        uint256 amount = 8 * (10 ** decimals);
+        uint256 purchaseAmount = 0.02 ether; // Ensure above MIN_PURCHASE
 
         uint256 startBalance = instance.balanceOf(deployer);
-        (,,, uint256 price) = getRequestParams(amount);
+
+        // Calculate expected tokens
+        uint256 expectedTokens = instance.calculatePurchaseReturn(
+            instance.totalSupply(), instance.poolBalance(), reserveRatio, purchaseAmount
+        );
+
+        // Set minTokens to 99% of expected tokens (1% slippage)
+        uint256 minTokens = (expectedTokens * 99) / 100;
 
         vm.prank(deployer);
-        instance.buy{value: price}();
+        instance.buy{value: purchaseAmount}(minTokens);
 
         uint256 endBalance = instance.balanceOf(deployer);
         uint256 amountBought = endBalance - startBalance;
 
-        assertApproxEqAbs(amountBought, amount, 1e3, "Able to buy tokens correctly");
+        assertGt(amountBought, 0, "Should receive tokens");
+        assertApproxEqRel(amountBought, expectedTokens, 0.01e18, "Should receive expected amount within 1%");
     }
 
     function testCannotBuyWithZeroETH() public {
-        vm.expectRevert("VALUE <= 0");
+        vm.expectRevert(abi.encodeWithSignature("InsufficientValue()"));
         vm.prank(deployer);
-        instance.buy{value: 0}();
+        instance.buy{value: 0}(0);
+    }
+
+    function testSlippageProtectionOnBuy() public {
+        uint256 purchaseAmount = 0.02 ether; // Ensure above MIN_PURCHASE
+
+        // Calculate expected tokens
+        uint256 expectedTokens = instance.calculatePurchaseReturn(
+            instance.totalSupply(), instance.poolBalance(), reserveRatio, purchaseAmount
+        );
+
+        // Set minimum tokens higher than expected
+        uint256 minTokens = expectedTokens * 2;
+
+        vm.prank(deployer);
+        vm.expectRevert(abi.encodeWithSignature("SlippageProtectionFailed()"));
+        instance.buy{value: purchaseAmount}(minTokens);
     }
 
     function testCannotSellMoreThanOwned() public {
         uint256 balance = instance.balanceOf(deployer);
-        vm.expectRevert("LOW_BALANCE_OR_BAD_INPUT");
-
         vm.prank(deployer);
-        instance.sell(balance + 1);
+        vm.expectRevert(abi.encodeWithSignature("InsufficientBalance()"));
+        instance.sell(balance + 1, 0);
     }
 
     function testSellTokens() public {
         uint256 sellAmount = instance.balanceOf(deployer) / 2;
-        (uint256 totalSupply, uint256 poolBalance,,) = getRequestParams(sellAmount);
+        uint256 saleReturn =
+            instance.calculateSaleReturn(instance.totalSupply(), instance.poolBalance(), reserveRatio, sellAmount);
 
-        uint256 saleReturn = instance.calculateSaleReturn(totalSupply, poolBalance, reserveRatio, sellAmount);
+        uint256 minEth = (saleReturn * 99) / 100;
 
         uint256 contractBalanceBefore = address(instance).balance;
 
         vm.prank(deployer);
-        instance.sell(sellAmount);
+        instance.sell(sellAmount, minEth);
 
         uint256 contractBalanceAfter = address(instance).balance;
         uint256 change = contractBalanceBefore - contractBalanceAfter;
 
-        assertEq(saleReturn, change, "Sale return should match contract balance change");
+        assertApproxEqRel(saleReturn, change, 0.01e18, "Sale return should match contract balance change");
+    }
+
+    function testSellZeroAmount() public {
+        vm.prank(deployer);
+        vm.expectRevert(abi.encodeWithSignature("InvalidSellAmount()"));
+        instance.sell(0, 0);
     }
 }

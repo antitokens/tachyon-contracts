@@ -1,16 +1,13 @@
 [profile.default]
 src = 'src'
 out = 'out'
-libs = ['lib']
-
+libs = ['lib', 'node_modules']
 # Enables or disables the optimizer
 optimizer = true
 viaIR = true
-
 # The number of optimizer runs
 #optimizer_runs = 666
 gas_reports = ["BondingCurve", "GatewayManager"]
-
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config
 # Foundry "Memory allocation overflow"
 memory_limit = 67108864

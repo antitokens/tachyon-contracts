@@ -1,4 +1,4 @@
-[![](https://raw.githubusercontent.com/antitokens/tachyon/main/.github/badge.svg?v=12345)](https://github.com/antitokens/tachyon/actions/workflows/test.yml)
+[![](https://raw.githubusercontent.com/antitokens/tachyon-contracts/main/.github/badge.svg?v=12345)](https://github.com/antitokens/tachyon-contracts/actions/workflows/test.yml)
 
 # `Tachyon`
 
@@ -12,8 +12,8 @@
 #### 2. Install dependency
 `forge install foundry-rs/forge-std --no-commit --no-git`
 
-#### 3. Goerli Testnet
- `./test/goerli.sh`
+#### 3. Base Sepolia Testnet
+ `./test/sepolia.sh`
 
 ## Specification
 
